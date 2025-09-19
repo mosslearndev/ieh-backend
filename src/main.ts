@@ -20,7 +20,7 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
   app.useStaticAssets(join(__dirname, '..', 'uploads/slips'), { prefix: '/uploads/slips' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  await app.listen(4000);
+  await app.listen(process.env.PORT || 4000);  // ⬅️ เผื่อ Render กำหนด PORT
 }
 bootstrap();
 

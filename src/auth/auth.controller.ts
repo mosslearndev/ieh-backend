@@ -15,19 +15,19 @@ export class AuthController {
   // constructor(private readonly authService: AuthService) {}
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('register')
   async register(
-    @Body(ValidationPipe) registerDto: RegisterDto, 
+    @Body(ValidationPipe) registerDto: RegisterDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     const data = await this.authService.register(registerDto);
     response.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'none', // ⬅️ เปลี่ยนจาก 'strict' เป็น 'none'
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day
     });
@@ -43,30 +43,37 @@ export class AuthController {
     response.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'none',
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day
     });
     // 2. ส่ง message และ role กลับไป
-    return { 
+    return {
       message: data.message,
-      role: data.role // <-- เพิ่มบรรทัดนี้
+      role: data.role, // <-- เพิ่มบรรทัดนี้
     };
   }
 
   @Post('logout')
   logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('access_token', { path: '/' });
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none', // ⬅️
+      path: '/',
+    });
     return { message: 'Logout successful' };
   }
 
   @Post('forgot-password')
-  forgotPassword(@Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto) { // <-- เพิ่ม ValidationPipe
+  forgotPassword(@Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto) {
+    // <-- เพิ่ม ValidationPipe
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Post('reset-password')
-  resetPassword(@Body(ValidationPipe) resetPasswordDto: ResetPasswordDto) { // <-- เพิ่ม ValidationPipe
+  resetPassword(@Body(ValidationPipe) resetPasswordDto: ResetPasswordDto) {
+    // <-- เพิ่ม ValidationPipe
     return this.authService.resetPassword(resetPasswordDto);
   }
 
@@ -110,13 +117,16 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async googleAuthRedirect(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const data = await this.authService.validateGoogleUser(req.user);
 
     res.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'none',
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
     });
@@ -127,7 +137,9 @@ export class AuthController {
     // 3. (สำคัญ) ตรวจสอบว่ามีค่า frontendUrl อยู่จริงหรือไม่
     if (!frontendUrl) {
       // ถ้าไม่มี ให้โยน Error ที่ชัดเจนว่าเซิร์ฟเวอร์ตั้งค่าผิดพลาด
-      throw new InternalServerErrorException('Frontend URL is not configured in environment variables.');
+      throw new InternalServerErrorException(
+        'Frontend URL is not configured in environment variables.',
+      );
     }
 
     // 4. หลังจากผ่าน if check แล้ว TypeScript จะมั่นใจว่า frontendUrl เป็น string
