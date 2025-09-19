@@ -1,0 +1,158 @@
+// คำสั่งนิยม
+// migrate เพื่อสร้าง table Prisma ยังไม่ได้สร้าง table : npx prisma migrate dev --name init
+// npx prisma db push
+// อัปเดตตาม schema ล่าสุด : npx prisma generate
+// เช็คฐานข้อมูล : npx prisma studio
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//============ User ============ 
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          Role      @default(USER)
+  isVerified    Boolean   @default(true)
+  provider      String?   // สำหรับ Google Login (google)
+  providerId    String?   // ID จาก Google
+
+  otp           String?
+  otpExpiresAt  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+  addresses     Address[] 
+
+  @@unique([provider, providerId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+//============ สินค้า ============ 
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+}
+
+model Product {
+  id String @id @default(cuid())
+
+  // --- Multilingual Fields ---
+  name_th        String
+  name_en        String
+  description_th String @db.Text
+  description_en String @db.Text
+  specs_th       String[] // เก็บเป็น Array ของ String
+  specs_en       String[] // เก็บเป็น Array ของ String
+
+  // --- Core Fields ---
+  price     Float
+  discount  Int       @default(0) // ส่วนลด (%)
+  stock     Int
+  imageUrls String[]
+
+  // --- Relations ---
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  brandId String
+  brand   Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//============ Order ============ 
+model Order {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalAmount     Float
+  status          OrderStatus @default(PENDING_PAYMENT)
+  
+  // Shipping Details
+  shippingName    String
+  shippingAddress String
+  shippingPhone   String
+  shippingProvider String? // เช่น Kerry Express, Thailand Post
+  trackingNumber   String? // เลขพัสดุ
+
+  
+  paymentSlipUrl  String? // URL ของสลิปที่อัปโหลด
+
+  items           OrderItem[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model OrderItem {
+  id        String    @id @default(cuid())
+  orderId   String
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String
+  
+  name      String // เก็บชื่อสินค้า ณ เวลาที่สั่งซื้อ
+  price     Float  // เก็บราคา ณ เวลาที่สั่งซื้อ
+  quantity  Int
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  VERIFYING_PAYMENT
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+//============ ที่อยู่ ============ 
+model Address {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  recipientName String
+  phone         String
+  addressLine1  String
+  district      String
+  province      String
+  postalCode    String
+  isDefault     Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+//============ Contact ============ 
+model ContactMessage {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String    @db.Text
+  isRead    Boolean   @default(false)
+
+  createdAt DateTime  @default(now())
+}
