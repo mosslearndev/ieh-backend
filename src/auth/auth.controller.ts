@@ -27,7 +27,7 @@ export class AuthController {
     response.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // ⬅️ เปลี่ยนจาก 'strict' เป็น 'none'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // sameSite: 'none', // ⬅️ เปลี่ยนจาก 'strict' เป็น 'none'
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day
     });
@@ -43,7 +43,7 @@ export class AuthController {
     response.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day
     });
@@ -59,7 +59,7 @@ export class AuthController {
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // ⬅️
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // ⬅️
       path: '/',
     });
     return { message: 'Logout successful' };
@@ -126,7 +126,7 @@ export class AuthController {
     res.cookie('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
       path: '/',
       expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
     });
